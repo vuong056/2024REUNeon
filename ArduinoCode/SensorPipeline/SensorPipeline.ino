@@ -45,6 +45,10 @@ QwiicButton button;
 #include "SparkFun_Qwiic_OpenLog_Arduino_Library.h"
 OpenLog myLog; //Create instance
 
+/** MicroPressusre **/
+#include <SparkFun_MicroPressure.h>
+SparkFun_MicroPressure mpr;
+
 String nextFileName = "";
 
 void setup()
@@ -145,6 +149,11 @@ void setup()
   SERIAL_PORT.println(F(" Directory Created"));
   myLog.changeDirectory(dirName);
   
+  /** MicroPressure Initialization **/
+  if(!mpr.begin()) {
+    SERIAL_PORT.println("Can't connect to MicroPressure Sensor");
+    while(1);
+  }
 
 }
 
@@ -202,6 +211,7 @@ void loop()
       delay(10);
     //SERIAL_PORT.println("Button is not pressed");
   } 
+
   if(startFlag == 1) {
     digitalWrite(LED_BUILTIN, HIGH);
     
@@ -421,6 +431,17 @@ void writeFormattedFloat(float val, uint8_t leading, uint8_t decimals)
   }
 }
 
+void writePressure() {
+  myLog.print(" Pa [");
+  myLog.print(mpr.readPressure(PA));
+  myLog.print("], PSI [");
+  myLog.print(mpr.readPressure());
+  myLog.print("], atm [");
+  myLog.print(mpr.readPressure(ATM));
+  myLog.print("]");
+
+}
+
 #ifdef USE_SPI
 void writeScaledAGMT(ICM_20948_SPI *sensor)
 {
@@ -448,6 +469,7 @@ void writeScaledAGMT(ICM_20948_I2C *sensor)
   writeFormattedFloat(sensor->magZ(), 5, 2);
   myLog.print(" ], Tmp (C) [ ");
   writeFormattedFloat(sensor->temp(), 5, 2);
-  myLog.print(" ]");
+  myLog.print(" ],");
+  writePressure();
   myLog.println();
 }
