@@ -150,10 +150,10 @@ void setup()
   myLog.changeDirectory(dirName);
   
   /** MicroPressure Initialization **/
-  if(!mpr.begin()) {
-    SERIAL_PORT.println("Can't connect to MicroPressure Sensor");
-    while(1);
-  }
+  // if(!mpr.begin()) {
+  //   SERIAL_PORT.println("Can't connect to MicroPressure Sensor");
+  //   while(1);
+  // }
 
 }
 
@@ -470,6 +470,6 @@ void writeScaledAGMT(ICM_20948_I2C *sensor)
   myLog.print(" ], Tmp (C) [ ");
   writeFormattedFloat(sensor->temp(), 5, 2);
   myLog.print(" ],");
-  writePressure();
+  //writePressure();
   myLog.println();
 }
