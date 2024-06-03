@@ -49,6 +49,10 @@ OpenLog myLog; //Create instance
 #include <SparkFun_MicroPressure.h>
 SparkFun_MicroPressure mpr;
 
+#define ON 1
+#define PAUSE 2
+#define OFF 0
+#define LOG_INTERVAL 250 //miliseconds between logging data
 String nextFileName = "";
 
 void setup()
@@ -112,32 +116,32 @@ void setup()
   Serial.println("OpenLog initialized");
   myLog.println("OpenLog initialized for Sensor_Pipeline.ino");
 
-  myLog.println("Time to make a directory");
-  myLog.changeDirectory(".."); //Make sure we're in the root directory
-  myLog.searchDirectory("*/"); //Give me every directory
-  // Inefficient get last directory
-  String dirName = myLog.getNextDirectoryItem();
-  String lastDirName = "";
-  while (dirName != "") {
-    if(dirName.indexOf("LOG") > -1) {
-      lastDirName = dirName; 
-    }
-    SERIAL_PORT.println(dirName);
-    dirName = myLog.getNextDirectoryItem();
-  }
-  SERIAL_PORT.println("DONE GETTING DIRECTORY NAMES");
-  if (lastDirName == "") {
-    dirName = "LOG1";
-  } else {
-    int logNum = lastDirName.substring(3).toInt() + 1; //Hardcode get numbers following "Log"
-    dirName = lastDirName.substring(0, 3) + logNum;
-  }
-  myLog.makeDirectory(dirName);
-  myLog.changeDirectory(dirName);
+  // myLog.println("Time to make a directory");
+  // myLog.changeDirectory(".."); //Make sure we're in the root directory
+  // myLog.searchDirectory("*/"); //Give me every directory
+  // // Inefficient get last directory
+  // String dirName = myLog.getNextDirectoryItem();
+  // String lastDirName = "";
+  // while (dirName != "") {
+  //   if(dirName.indexOf("LOG") > -1) {
+  //     lastDirName = dirName; 
+  //   }
+  //   SERIAL_PORT.println(dirName);
+  //   dirName = myLog.getNextDirectoryItem();
+  // }
+  // SERIAL_PORT.println("DONE GETTING DIRECTORY NAMES");
+  // if (lastDirName == "") {
+  //   dirName = "LOG1";
+  // } else {
+  //   int logNum = lastDirName.substring(3).toInt() + 1; //Hardcode get numbers following "Log"
+  //   dirName = lastDirName.substring(0, 3) + logNum;
+  // }
+  // myLog.makeDirectory(dirName);
+  // myLog.changeDirectory(dirName);
 
-  nextFileName = "Test1";
-  SERIAL_PORT.print(dirName);
-  SERIAL_PORT.println(F(" Directory Created"));
+  // nextFileName = "Trial";
+  // SERIAL_PORT.print(dirName);
+  // SERIAL_PORT.println(F(" Directory Created"));
   
   String fileName = nextFileName + ".txt";
   myLog.append(fileName);
@@ -164,8 +168,8 @@ void loop()
   if (button.isPressed() == true) {
     SERIAL_PORT.println("Button is pressed");
     if(lastClickTime > 150) { //if single press: start collect if not yet started
-      if(startFlag == 0) {
-        startFlag = 1;
+      if(startFlag == OFF) {
+        startFlag = ON;
         String fileName = nextFileName + ".txt";
         myLog.append(fileName);
         myLog.print(fileName);
@@ -179,48 +183,48 @@ void loop()
         myLog.println("Acc (mg) X, Y, Z, Gyr (DPS) X, Y, Z, Mag (uT) X, Y, Z, Temp, Pa, PSI, atm");
   
       }
-      else if (startFlag == 1) { // eventually single press = pause data writing
+      else if (startFlag == ON) { 
         SERIAL_PORT.println("Single button click acknowledged, data collection Paused.");
         myLog.print(millis());
         myLog.println(" Single button click acknowledged, data collection Paused.");
         myLog.syncFile();
-        startFlag = 2;
+        startFlag = PAUSE;
       }
-      else if (startFlag == 2) {
+      else if (startFlag == PAUSE) {
         SERIAL_PORT.println("Single button click acknowledged, data collection resumed.");
         myLog.print(millis());
         myLog.println(" Single button click acknowledged, data collection resumed.");
         myLog.syncFile();
-        startFlag = 1;
+        startFlag = ON;
       }
     }
     else { //double click registered -- eventually double click = write to disk
       //SERIAL_PORT.println("Time since last click:");
       //SERIAL_PORT.println(lastClickTime);
-      if(startFlag == 1 || startFlag == 2) {
-        startFlag = 0; 
+      if(startFlag == ON || startFlag == PAUSE) {
+        startFlag = OFF; 
         myLog.print(millis());
         myLog.println(" Data Collection Ended.");
         SERIAL_PORT.println("Data collection ended, click to restart");
         myLog.syncFile();
       }
-      else if(startFlag == 0) {
+      else if(startFlag == OFF) {
         SERIAL_PORT.println("Data collection already ended");
       }
     }
     
-    while (button.isPressed() == true)
-      delay(10);
+    =
     //SERIAL_PORT.println("Button is not pressed");
   } 
 
-  if(startFlag == 1) {
+  if(startFlag == ON) {
     digitalWrite(LED_BUILTIN, HIGH);
     
     if (myICM.dataReady()) {
-      myICM.getAGMT();         // The values are only updated when you call 'getAGMT'
+               // The values are only updated when you call 'getAGMT'
                               //    printRawAGMT( myICM.agmt );     // Uncomment this to see the raw values, taken directly from the agmt structure
-      if (millis() - init_time > 1000) {
+      if (millis() - init_time > LOG_INTERVAL) { 
+        myICM.getAGMT();
         printScaledAGMT(&myICM); // This function takes into account the scale settings from when the measurement was made to calculate the values with units
         myLog.print(millis());
         myLog.print(" ");
@@ -235,9 +239,9 @@ void loop()
         init_time = millis();
       }
     }
-  } else if (startFlag == 2) {
+  } else if (startFlag == PAUSE) {    // Blink onboard button when Paused
     if (millis() - init_time > 1000) {
-      status = !status;
+      status = !status;               //Control light on/off status
       digitalWrite(LED_BUILTIN, status);
       init_time = millis();
     }
