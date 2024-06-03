@@ -100,7 +100,7 @@ void setup()
   }
   SERIAL_PORT.println("Button acknowledged");
   while(!button.isPressedQueueEmpty()){
-    SERIAL_PORT.println("Button pressed queue not empty");
+    //SERIAL_PORT.println("Button pressed queue not empty");
     button.popPressedQueue();
   }
 
@@ -111,16 +111,6 @@ void setup()
   myLog.begin();
   Serial.println("OpenLog initialized");
   myLog.println("OpenLog initialized for Sensor_Pipeline.ino");
-  // if(myLog.size(fileName) == -1) { //Create new file since it doesn't exist
-  //   SERIAL_PORT.print(fileName);
-  //   SERIAL_PORT.println(" not found, Creating new file");
-  //   myLog.append(fileName);
-  //   myLog.println("File beginning");
-  // }
-  // else {
-  //   SERIAL_PORT.print(fileName);
-  //   SERIAL_PORT.println(" file found, appending");
-  // }
 
   myLog.println("Time to make a directory");
   myLog.changeDirectory(".."); //Make sure we're in the root directory
@@ -143,17 +133,24 @@ void setup()
     dirName = lastDirName.substring(0, 3) + logNum;
   }
   myLog.makeDirectory(dirName);
+  myLog.changeDirectory(dirName);
 
   nextFileName = "Test1";
-  SERIAL_PORT.println(dirName);
+  SERIAL_PORT.print(dirName);
   SERIAL_PORT.println(F(" Directory Created"));
-  myLog.changeDirectory(dirName);
   
+  String fileName = nextFileName + ".txt";
+  myLog.append(fileName);
+  myLog.println("IMU Output: Scaled");
+  myLog.println("Acc (mg) X, Y, Z, Gyr (DPS) X, Y, Z, Mag (uT) X, Y, Z, Temp, Pa, PSI, atm");
+  //myLog.syncFile();
   /** MicroPressure Initialization **/
-  // if(!mpr.begin()) {
-  //   SERIAL_PORT.println("Can't connect to MicroPressure Sensor");
-  //   while(1);
-  // }
+  if(!mpr.begin()) {
+    SERIAL_PORT.println("Can't connect to MicroPressure Sensor");
+    while(1);
+  } else {
+    SERIAL_PORT.println("MicroPressure Sensor Connected");
+  }
 
 }
 
@@ -178,6 +175,9 @@ void loop()
         nextFileName = whyDoINeedThis + fileNum;
         SERIAL_PORT.println(nextFileName);
         SERIAL_PORT.println("First Button click, Data Collection Started");
+        myLog.println("IMU Output: Scaled");
+        myLog.println("Acc (mg) X, Y, Z, Gyr (DPS) X, Y, Z, Mag (uT) X, Y, Z, Temp, Pa, PSI, atm");
+  
       }
       else if (startFlag == 1) { // eventually single press = pause data writing
         SERIAL_PORT.println("Single button click acknowledged, data collection Paused.");
@@ -199,6 +199,8 @@ void loop()
       //SERIAL_PORT.println(lastClickTime);
       if(startFlag == 1 || startFlag == 2) {
         startFlag = 0; 
+        myLog.print(millis());
+        myLog.println(" Data Collection Ended.");
         SERIAL_PORT.println("Data collection ended, click to restart");
         myLog.syncFile();
       }
@@ -432,13 +434,11 @@ void writeFormattedFloat(float val, uint8_t leading, uint8_t decimals)
 }
 
 void writePressure() {
-  myLog.print(" Pa [");
   myLog.print(mpr.readPressure(PA));
-  myLog.print("], PSI [");
+  myLog.print(",");
   myLog.print(mpr.readPressure());
-  myLog.print("], atm [");
+  myLog.print(",");
   myLog.print(mpr.readPressure(ATM));
-  myLog.print("]");
 
 }
 
@@ -449,27 +449,26 @@ void writeScaledAGMT(ICM_20948_SPI *sensor)
 void writeScaledAGMT(ICM_20948_I2C *sensor)
 {
 #endif
-  myLog.print("Scaled. Acc (mg) [ ");
   writeFormattedFloat(sensor->accX(), 5, 2);
-  myLog.print(", ");
+  myLog.print(",");
   writeFormattedFloat(sensor->accY(), 5, 2);
-  myLog.print(", ");
+  myLog.print(",");
   writeFormattedFloat(sensor->accZ(), 5, 2);
-  myLog.print(" ], Gyr (DPS) [ ");
+  myLog.print(",");
   writeFormattedFloat(sensor->gyrX(), 5, 2);
-  myLog.print(", ");
+  myLog.print(",");
   writeFormattedFloat(sensor->gyrY(), 5, 2);
-  myLog.print(", ");
+  myLog.print(",");
   writeFormattedFloat(sensor->gyrZ(), 5, 2);
-  myLog.print(" ], Mag (uT) [ ");
+  myLog.print(",");
   writeFormattedFloat(sensor->magX(), 5, 2);
-  myLog.print(", ");
+  myLog.print(",");
   writeFormattedFloat(sensor->magY(), 5, 2);
-  myLog.print(", ");
+  myLog.print(",");
   writeFormattedFloat(sensor->magZ(), 5, 2);
-  myLog.print(" ], Tmp (C) [ ");
+  myLog.print(",");
   writeFormattedFloat(sensor->temp(), 5, 2);
-  myLog.print(" ],");
-  //writePressure();
+  myLog.print(",");
+  writePressure();
   myLog.println();
 }
